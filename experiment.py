@@ -1,8 +1,9 @@
 import os
 from tabulate import tabulate
 import matplotlib.pyplot as plt
-from ete3 import tree
+from ete3 import Tree
 import numpy as np
+import math
 
 def run_inference(msa_path, model, prefix, args = ""):
     if not os.path.isfile(msa_path):
@@ -38,8 +39,11 @@ def gq_distance(tree_name1, tree_name2):
 
 
 def rf_distance(tree_name1, tree_name2):
-    t1 = Tree(tree_name1)
-    t2 = Tree(tree_name2)
+    try:
+        t1 = Tree(tree_name1)
+        t2 = Tree(tree_name2)
+    except:
+        return float('nan')
     if t1 is None or t2 is None:
         return float('nan')
     if t1 != t1 or t2 != t2:
@@ -51,8 +55,7 @@ def rf_distance(tree_name1, tree_name2):
 
 
 def plot_distribution(data, label):
-    y, _, _ = plt.hist(data, bins = get_bins(data, 20))
-    plt.yticks(range(0, math.ceil(y.max())+1, 2))
+    plt.hist(data, 20)
     plt.xlabel(label)
     plt.ylabel('Number of datasets')
     plt.savefig(os.path.join(plots_dir, "hist_" + label +  ".png"))
@@ -70,19 +73,19 @@ for dataset in os.listdir("data/msa"):
     bin_msa_path = os.path.join("data/msa/", dataset, "bin.phy")
     #run_inference(bin_msa_path, "BIN+G", os.path.join("data/raxml/", dataset, "bin"))
     dolgo_msa_path = os.path.join("data/sound_msa/", dataset, "dolgo.phy")
-    #run_inference(dolgo_msa_path, "MULTI15_MK+M{VKPHJMNSRTW+1_~}{-}", os.path.join("data/raxml/", dataset, "dolgo"))
+    #run_inference(dolgo_msa_path, "MULTI14_MK+M{VKPHJMNSRTW+1_}{-}", os.path.join("data/raxml/", dataset, "dolgo"))
     dolgo_catg_msa_path = os.path.join("data/sound_msa/", dataset, "dolgo.catg")
-    run_inference(dolgo_catg_msa_path, "MULTI15_MK+M{VKPHJMNSRTW+1_~}{-}", os.path.join("data/raxml/", dataset, "dolgo_catg"), args = "--prob-msa on --redo")
+    #run_inference(dolgo_catg_msa_path, "MULTI15_MK+M{VKPHJMNSRTW+1_~}{-}", os.path.join("data/raxml/", dataset, "dolgo_catg"), args = "--prob-msa on")
     bin_samples_dir = os.path.join("data/msa/", dataset, "samples")
     bin_prefix = os.path.join("data/raxml/", dataset, "bin_samples")
     for i in range(num_samples):
         bin_msa_path = os.path.join(bin_samples_dir, "sample" + str(i) + "_bin.phy")
-        run_inference(bin_msa_path, "BIN+G", os.path.join(bin_prefix, "sample" + str(i) + "_bin"))
+        #run_inference(bin_msa_path, "BIN+G", os.path.join(bin_prefix, "sample" + str(i) + "_bin"))
     dolgo_samples_dir = os.path.join("data/sound_msa/", dataset, "samples")
     dolgo_prefix = os.path.join("data/raxml/", dataset, "dolgo_samples")
     for i in range(num_samples):
         dolgo_msa_path = os.path.join(dolgo_samples_dir,  "sample" + str(i) + "_dolgo.phy")
-        run_inference(dolgo_msa_path, "MULTI15_MK+M{VKPHJMNSRTW+1_~}{-}", os.path.join(dolgo_prefix, "sample" + str(i) + "_dolgo"))
+       # run_inference(dolgo_msa_path, "MULTI14_MK+M{VKPHJMNSRTW+1_}{-}", os.path.join(dolgo_prefix, "sample" + str(i) + "_dolgo"))
 results = []
 bin_dists = []
 dolgo_dists = []
@@ -96,6 +99,7 @@ for dataset in os.listdir("data/raxml"):
     best_bin_tree_path = os.path.join("data/raxml/", dataset, "bin.raxml.bestTree")
     best_dolgo_tree_path = os.path.join("data/raxml/", dataset, "dolgo.raxml.bestTree")
     best_dolgo_catg_tree_path = os.path.join("data/raxml/", dataset, "dolgo_catg.raxml.bestTree")
+    bin_prefix = os.path.join("data/raxml/", dataset, "bin_samples")
     gq_bin = gq_distance(glottolog_tree_path, best_bin_tree_path)
     bin_sample_dists.append([gq_distance(glottolog_tree_path, os.path.join(bin_prefix, "sample" + str(i) + "_bin.raxml.bestTree")) for i in range(num_samples)])
     rf_bin.append([rf_distance(best_bin_tree_path, os.path.join(bin_prefix, "sample" + str(i) + "_bin.raxml.bestTree")) for i in range(num_samples)])
@@ -111,12 +115,12 @@ for dataset in os.listdir("data/raxml"):
 print(tabulate(results, tablefmt="pipe", floatfmt=".3f", headers = ["dataset", "gq bin", "gq dolgo", "gq dolgo catg"]))
 
 
-plot_distribution(df, [sum(dists) / len(dists) for dists in rf_bin], "mean_rf_bin")
-plot_distribution(df, [sum(dists) / len(dists) for dists in rf_dolgo], "mean_rf_dolgo")
-plot_distribution(df, [max(dists) for dists in rf_bin] , "max_rf_bin")
-plot_distribution(df, [max(dists) for dists in rf_dolgo] , "max_rf_dolgo")
-plot_distribution(df, [np.std(dists) for dists in bin_sample_dists] , "std_gqd_bin")
-plot_distribution(df, [np.std(dists) for dists in dolgo_sample_dists] , "std_gqd_dolgo")
+plot_distribution([sum(dists) / len(dists) for dists in rf_bin], "mean_rf_bin")
+plot_distribution([sum(dists) / len(dists) for dists in rf_dolgo], "mean_rf_dolgo")
+plot_distribution([max(dists) for dists in rf_bin] , "max_rf_bin")
+plot_distribution([max(dists) for dists in rf_dolgo] , "max_rf_dolgo")
+plot_distribution([np.std(dists) for dists in bin_sample_dists] , "std_gqd_bin")
+plot_distribution([np.std(dists) for dists in dolgo_sample_dists] , "std_gqd_dolgo")
 
 plt.axline([0, 0], slope=1, color = 'lightgray', linewidth = 1, linestyle = "--")
 plt.scatter(bin_dists, [sum(dists) / len(dists) for dists in bin_sample_dists], s=10)
@@ -139,6 +143,14 @@ plt.axline([0, 0], slope=1, color = 'lightgray', linewidth = 1, linestyle = "--"
 plt.scatter(bin_dists, dolgo_catg_dists, s = 10)
 plt.xlabel("bin")
 plt.ylabel("dolgo")
-plt.savefig("scatter_bin_dolgo_catg.png")
+plt.savefig(os.path.join(plots_dir, "scatter_bin_dolgo_catg.png"))
+plt.clf()
+plt.close()
+
+plt.axline([0, 0], slope=1, color = 'lightgray', linewidth = 1, linestyle = "--")
+plt.scatter(bin_dists, [sum(dists) / len(dists) for dists in dolgo_sample_dists], s=10)
+plt.xlabel("gq_full_bin")
+plt.ylabel("avg_gq_samples_dolgo")
+plt.savefig(os.path.join(plots_dir, "scatter_samplesi_dolgo_bin.png"))
 plt.clf()
 plt.close()
