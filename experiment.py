@@ -43,7 +43,7 @@ def rf_distance(tree_name1, tree_name2):
         t1 = Tree(tree_name1)
         t2 = Tree(tree_name2)
     except:
-        return float('nan')
+        return float("nan")
     if t1 is None or t2 is None:
         return float('nan')
     if t1 != t1 or t2 != t2:
@@ -74,8 +74,10 @@ for dataset in os.listdir("data/msa"):
     #run_inference(bin_msa_path, "BIN+G", os.path.join("data/raxml/", dataset, "bin"))
     dolgo_msa_path = os.path.join("data/sound_msa/", dataset, "dolgo.phy")
     #run_inference(dolgo_msa_path, "MULTI14_MK+M{VKPHJMNSRTW+1_}{-}", os.path.join("data/raxml/", dataset, "dolgo"))
+    dolgo_greedy_msa_path = os.path.join("data/sound_msa/", dataset, "dolgo_greedy.phy")
+    #run_inference(dolgo_greedy_msa_path,  "MULTI14_MK+M{VKPHJMNSRTW+1_}{-}"", os.path.join("data/raxml/", dataset, "dolgo_greedy"))
     dolgo_catg_msa_path = os.path.join("data/sound_msa/", dataset, "dolgo.catg")
-    #run_inference(dolgo_catg_msa_path, "MULTI15_MK+M{VKPHJMNSRTW+1_~}{-}", os.path.join("data/raxml/", dataset, "dolgo_catg"), args = "--prob-msa on")
+    #run_inference(dolgo_catg_msa_path, "MULTI15_MK+M{VKPHJMNSRTW+1_~}{-}", os.path.join("data/raxml/", dataset, "dolgo_catg"), args = "--prob-msa on --redo")
     bin_samples_dir = os.path.join("data/msa/", dataset, "samples")
     bin_prefix = os.path.join("data/raxml/", dataset, "bin_samples")
     for i in range(num_samples):
@@ -89,6 +91,7 @@ for dataset in os.listdir("data/msa"):
 results = []
 bin_dists = []
 dolgo_dists = []
+dolgo_greedy_dists = []
 dolgo_catg_dists = []
 bin_sample_dists = []
 dolgo_sample_dists = []
@@ -98,21 +101,24 @@ for dataset in os.listdir("data/raxml"):
     glottolog_tree_path = os.path.join("data/glottolog_trees", dataset, "glottolog.tree")
     best_bin_tree_path = os.path.join("data/raxml/", dataset, "bin.raxml.bestTree")
     best_dolgo_tree_path = os.path.join("data/raxml/", dataset, "dolgo.raxml.bestTree")
+    best_dolgo_greedy_tree_path = os.path.join("data/raxml/", dataset, "dolgo_greedy.raxml.bestTree")
     best_dolgo_catg_tree_path = os.path.join("data/raxml/", dataset, "dolgo_catg.raxml.bestTree")
     bin_prefix = os.path.join("data/raxml/", dataset, "bin_samples")
     gq_bin = gq_distance(glottolog_tree_path, best_bin_tree_path)
     bin_sample_dists.append([gq_distance(glottolog_tree_path, os.path.join(bin_prefix, "sample" + str(i) + "_bin.raxml.bestTree")) for i in range(num_samples)])
     rf_bin.append([rf_distance(best_bin_tree_path, os.path.join(bin_prefix, "sample" + str(i) + "_bin.raxml.bestTree")) for i in range(num_samples)])
     gq_dolgo = gq_distance(glottolog_tree_path, best_dolgo_tree_path)
+    gq_dolgo_greedy = gq_distance(glottolog_tree_path, best_dolgo_greedy_tree_path)
     gq_dolgo_catg = gq_distance(glottolog_tree_path, best_dolgo_catg_tree_path)
     dolgo_prefix = os.path.join("data/raxml/", dataset, "dolgo_samples")
     dolgo_sample_dists.append([gq_distance(glottolog_tree_path, os.path.join(dolgo_prefix, "sample" + str(i) + "_dolgo.raxml.bestTree")) for i in range(num_samples)])
     rf_dolgo.append([rf_distance(best_dolgo_catg_tree_path, os.path.join(dolgo_prefix, "sample" + str(i) + "_dolgo.raxml.bestTree")) for i in range(num_samples)])
-    results.append([dataset, gq_bin, gq_dolgo, gq_dolgo_catg])
+    results.append([dataset, gq_bin, gq_dolgo, gq_dolgo_greedy, gq_dolgo_catg])
     bin_dists.append(gq_bin)
     dolgo_dists.append(gq_dolgo)
+    dolgo_greedy_dists.append(gq_dolgo_greedy)
     dolgo_catg_dists.append(gq_dolgo_catg)
-print(tabulate(results, tablefmt="pipe", floatfmt=".3f", headers = ["dataset", "gq bin", "gq dolgo", "gq dolgo catg"]))
+print(tabulate(results, tablefmt="pipe", floatfmt=".3f", headers = ["dataset", "gq bin", "gq dolgo", "gq dolgo greedy", "gq dolgo catg"]))
 
 
 plot_distribution([sum(dists) / len(dists) for dists in rf_bin], "mean_rf_bin")
@@ -152,5 +158,13 @@ plt.scatter(bin_dists, [sum(dists) / len(dists) for dists in dolgo_sample_dists]
 plt.xlabel("gq_full_bin")
 plt.ylabel("avg_gq_samples_dolgo")
 plt.savefig(os.path.join(plots_dir, "scatter_samplesi_dolgo_bin.png"))
+plt.clf()
+plt.close()
+
+plt.axline([0, 0], slope=1, color = 'lightgray', linewidth = 1, linestyle = "--")
+plt.scatter(bin_dists, dolgo_greedy_dists, s = 10)
+plt.xlabel("bin")
+plt.ylabel("dolgo")
+plt.savefig("scatter_bin_dolgo_greedy.png")
 plt.clf()
 plt.close()
