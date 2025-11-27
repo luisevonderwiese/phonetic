@@ -1,3 +1,4 @@
 data/
+plots/
 **/__pycache__/
 temp.phy.pythia.reduced
